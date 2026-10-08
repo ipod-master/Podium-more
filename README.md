@@ -1,6 +1,6 @@
 # Podium
 
-Podium is an **iPod Touch** emulator for iOS. Currently, these are the supported iOS versions:
+Podium is an multi **iPod Touch** emulator for iOS. Currently, these are the supported iOS versions:
 
 | Device               | iOS Version |
 | -------------------- | ----------- |
