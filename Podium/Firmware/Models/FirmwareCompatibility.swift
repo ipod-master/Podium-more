@@ -23,19 +23,33 @@ enum FirmwareCompatibility: Codable, Hashable {
 
 /// Decides compatibility for parsed firmware metadata.
 ///
-/// Podium's initial supported target is intentionally exact: a single
-/// device, a single iOS version, a single build. This is not a general
-/// "does Podium probably work" heuristic — it's a strict match against
-/// what's actually been validated.
+/// Podium now supports multiple iOS versions across multiple iPod touch
+/// generations. This checker validates that:
+/// 1. The device is recognized (iPod touch 2nd-5th generation)
+/// 2. The iOS version/build combination is in the supported list for that device
 enum FirmwareCompatibilityChecker {
     static func evaluate(_ metadata: FirmwareMetadata) -> FirmwareCompatibility {
-        guard metadata.supportedDeviceIdentifiers.contains(ReferenceFirmware.device.identifier) else {
+        // Check if device is recognized
+        guard metadata.supportedDeviceIdentifiers.contains(where: { deviceId in
+            DeviceCatalog.device(for: deviceId) != nil
+        }) else {
             return .unsupportedDevice
         }
-        guard metadata.productVersion == ReferenceFirmware.productVersion,
-              metadata.buildVersion == ReferenceFirmware.buildVersion else {
-            return .unsupportedVersion
+        
+        // Find the first recognized device in the firmware
+        guard let deviceId = metadata.supportedDeviceIdentifiers.first(where: { deviceId in
+            DeviceCatalog.device(for: deviceId) != nil
+        }) else {
+            return .unsupportedDevice
         }
-        return .compatible
+        
+        // Check if this iOS version is supported for the device
+        let supportedVersions = DeviceFirmwareSupport.versions(for: deviceId)
+        let isSupported = supportedVersions.contains { version in
+            version.productVersion == metadata.productVersion &&
+            version.buildVersion == metadata.buildVersion
+        }
+        
+        return isSupported ? .compatible : .unsupportedVersion
     }
 }
